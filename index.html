@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Media Data Dashboard</title>
+    <link rel="icon" href="favicon.ico">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        :root {
+            --primary-yellow: #eddc01;
+            --primary-blue: #0146bc;
+            --light-blue: #c2d6fb;
+            --background: #f4f6f8;
+            --surface: #ffffff;
+            --text-main: #2c3e50;
+            --text-secondary: #607d8b;
+            --border: #e2e8f0;
+            --shadow-card: 0 2px 8px rgba(0,0,0,0.08);
+            --shadow-hover: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Avenir Next LT Pro", "Avenir", "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--background);
+            color: var(--text-main);
+            line-height: 1.6;
+            font-size: 15px;
+        }
+
+        header {
+            background-color: var(--primary-blue);
+            padding: 1rem 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 4px solid var(--primary-yellow);
+        }
+
+        header h1 {
+            color: #ffffff;
+            font-size: 1.4rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 1.5rem;
+            min-height: calc(100vh - 150px);
+        }
+
+        .section {
+            background: var(--surface);
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-card);
+            padding: 1.5rem;
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            color: var(--primary-blue);
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        button {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 0px; 
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease, color 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+            font-family: inherit;
+            background-color: var(--primary-blue);
+            color: var(--surface);
+        }
+
+        button:hover {
+            background-color: #01358f;
+        }
+
+        .secondary-btn {
+            background-color: var(--surface);
+            color: var(--primary-blue);
+            border: 1px solid var(--primary-blue);
+        }
+
+        .secondary-btn:hover {
+            background-color: #f0f4f8;
+            color: var(--primary-blue);
+        }
+
+        .yellow-btn {
+            background-color: var(--primary-yellow);
+            color: var(--primary-blue);
+        }
+
+        .yellow-btn:hover {
+            background-color: #d1c101;
+        }
+
+        .danger-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .controls-toolbar {
+            display: flex;
+            gap: 15px;
+            background: #f8fafc;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        /* Filtro Accordion */
+        .filter-accordion {
+            width: 100%;
+            border: 1px solid var(--border);
+            background: white;
+        }
+
+        .filter-accordion summary {
+            padding: 15px;
+            cursor: pointer;
+            background: #f8fafc;
+            font-weight: 600;
+            color: var(--primary-blue);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            list-style: none;
+            user-select: none;
+        }
+
+        .filter-accordion summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .filter-accordion summary::after {
+            content: "▼";
+            font-size: 0.8rem;
+        }
+
+        .filter-content {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            border-top: 1px solid var(--border);
+        }
+
+        .filter-column {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group-title {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid var(--primary-yellow);
+            font-weight: 700;
+        }
+
+        .checkbox-list {
+            max-height: 250px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-right: 10px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .checkbox-item:hover {
+            background: #f1f5f9;
+        }
+
+        .checkbox-item input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--primary-blue);
+        }
+
+        .filter-footer {
+            grid-column: 1 / -1;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .chart-wrapper {
+            background: var(--surface);
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-card);
+            overflow-x: auto;
+            text-align: center;
+        }
+
+        /* Tabella */
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border-bottom: 1px solid var(--border);
+            padding: 12px 15px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f8fafc;
+            color: var(--primary-blue);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+
+        tr:hover {
+            background-color: #fcfcfc;
+        }
+
+        #summaryTable th:nth-child(n+3),
+        #summaryTable td:nth-child(n+3) {
+            text-align: center;
+        }
+
+        .icon-cell {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .icon-cell svg {
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="#ffffff">
+                <path d="M3,3H21V21H3V3M5,5V19H19V5H5M11,13H13V17H11V13M7,9H9V17H7V9M15,11H17V17H15V11Z" />
+            </svg>
+            Social Data Dashboard
+        </h1>
+    </header>
+
+    <div class="container">
+        <div class="section">
+            <h2 class="section-title">Strumenti di Gestione Dati</h2>
+            <div class="controls-toolbar">
+                <button onclick="document.getElementById('excelUpload').click()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M9,16V10H5L12,3L19,10H15V16H9M5,20V18H19V20H5Z"/></svg>
+                    1. Importa File Excel
+                </button>
+                <input type="file" id="excelUpload" accept=".xlsx, .xls" onchange="handleExcelUpload(event, this)" />
+
+                <button class="secondary-btn" onclick="exportJSON(this)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/></svg>
+                    2. Esporta DB (JSON)
+                </button>
+
+                <button class="secondary-btn" onclick="document.getElementById('jsonUpload').click()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M9,16V10H5L12,3L19,10H15V16H9M5,20V18H19V20H5Z"/></svg>
+                    Importa DB (JSON)
+                </button>
+                <input type="file" id="jsonUpload" accept=".json" onchange="importJSON(event, this)" />
+
+                <button class="yellow-btn" onclick="saveToBrowser(this)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"/></svg>
+                    3. Salva nel Browser
+                </button>
+
+                <button class="danger-btn" onclick="resetApp(this)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
+                    4. Resetta App
+                </button>
+            </div>
+            
+            <div id="filterContainer" style="display:none; margin-bottom: 20px;">
+                <details class="filter-accordion">
+                    <summary>5. Filtri Granulari (Canali e Profili)</summary>
+                    <div class="filter-content">
+                        <div class="filter-column">
+                            <h3 class="filter-group-title">Filtra per Canale</h3>
+                            <div class="checkbox-list" id="channelCheckboxList"></div>
+                        </div>
+                        <div class="filter-column">
+                            <h3 class="filter-group-title">Filtra per Profilo</h3>
+                            <div class="checkbox-list" id="profileCheckboxList"></div>
+                        </div>
+                        <div class="filter-footer">
+                            <button class="secondary-btn" onclick="selectAllFilters(true)">Seleziona Tutti</button>
+                            <button class="secondary-btn" onclick="selectAllFilters(false)">Deseleziona Tutti</button>
+                            <button class="yellow-btn" onclick="applyFilters()">Applica Filtri</button>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        </div>
+
+        <div id="dashboardArea" style="display:none;">
+            
+            <div class="section">
+                <h2 class="section-title">
+                    Grafico dei Risultati
+                    <div style="display: flex; gap: 15px; align-items: center;">
+                        <label for="chartHeight" style="font-size: 0.9rem; font-weight: normal; color: var(--text-main);">Altezza:</label>
+                        <input type="range" id="chartHeight" min="200" max="800" value="350" style="width:120px; cursor: pointer;" oninput="renderCustomSVGChart()">
+                        <button class="yellow-btn" onclick="exportChartSVG(this)">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/></svg>
+                            Esporta SVG
+                        </button>
+                    </div>
+                </h2>
+                <div class="chart-wrapper" id="chartContainer"></div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">
+                    Tabella di Sintesi
+                    <div style="display: flex; gap: 10px;">
+                        <button class="secondary-btn" onclick="exportTablePNG(this)">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19,19H5V5H19M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M13.96,12.29L11.21,15.83L9.25,13.47L6.5,17H17.5L13.96,12.29Z"/></svg>
+                            Esporta PNG
+                        </button>
+                        <button class="secondary-btn" onclick="exportTableSVG(this)">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/></svg>
+                            Esporta SVG
+                        </button>
+                        <button class="secondary-btn" onclick="exportTableToExcel(this)">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M12,12L8,16H10.5V19H13.5V16H16L12,12Z"/></svg>
+                            Esporta Excel
+                        </button>
+                    </div>
+                </h2>
+                <div class="table-container">
+                    <table id="summaryTable">
+                        <thead>
+                            <tr>
+                                <th style="cursor:pointer; user-select:none;" onclick="setSort(0)" title="Ordina per Canale">Canale</th>
+                                <th style="cursor:pointer; user-select:none;" onclick="setSort(1)" title="Ordina per Profilo">Profilo</th>
+                                <th style="cursor:pointer; user-select:none;" onclick="setSort(2)" title="Ordina per Followers">Followers</th>
+                                <th style="cursor:pointer; user-select:none;" onclick="setSort(3)" title="Ordina per Numero post">Numero post</th>
+                                <th style="cursor:pointer; user-select:none;" onclick="setSort(4)" title="Ordina per Interazioni totali">Interazioni totali</th>
+                                <th style="cursor:pointer; user-select:none;" onclick="setSort(5)" title="Ordina per Interazioni medie">Interazioni medie</th>
+                                <th style="cursor:pointer; user-select:none;" onclick="setSort(6)" title="Ordina per Visibilità logo">Visibilità logo (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- LOGICA E DATI GLOBALI ---
+        let appData = [];
+        let filteredData = [];
+        let tableSortCol = -1;
+        let tableSortAsc = true;
+
+        const socialLogosColor = {
+            facebook: `<svg width="20" height="20" viewBox="0 0 24 24" fill="#1877F2"><path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.142v3.24h-1.918c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z"/></svg>`,
+            instagram: `<svg width="20" height="20" viewBox="0 0 24 24" fill="#E4405F"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.85s-.011 3.584-.069 4.85c-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07s-3.584-.012-4.85-.07c-3.252-.148-4.771-1.691-4.919-4.919-.058-1.265-.069-1.645-.069-4.85s.011-3.584.069-4.85c.149-3.225 1.664-4.771 4.919-4.919 1.266-.058 1.644-.07 4.85-.07zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948s.014 3.667.072 4.947c.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072s3.667-.014 4.947-.072c4.358-.2 6.78-2.618 6.98-6.98.059-1.281.073-1.689.073-4.948s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-6.98-6.98-1.281-.058-1.689-.072-4.948-.072zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.162 6.162 6.162 6.162-2.759 6.162-6.162-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4s1.791-4 4-4 4 1.79 4 4-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44 1.441-.645 1.441-1.44-.645-1.44-1.441-1.44z"/></svg>`,
+            x: `<svg width="20" height="20" viewBox="0 0 24 24" fill="#000000"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.931 6.064-6.931zM17.61 20.644h2.039L6.486 3.24H4.298l13.312 17.404z"/></svg>`,
+            linkedin: `<svg width="20" height="20" viewBox="0 0 24 24" fill="#0A66C2"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>`,
+            youtube: `<svg width="20" height="20" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>`,
+            sconosciuto: `<svg width="20" height="20" viewBox="0 0 24 24" fill="#607d8b"><circle cx="12" cy="12" r="10" stroke="#607d8b" stroke-width="2" fill="none"/><text x="12" y="16" text-anchor="middle" font-size="14" fill="#607d8b">?</text></svg>`
+        };
+
+        function buttonFeedback(btn, message = "Fatto!") {
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = `<span>✅</span><span>${message}</span>`;
+            setTimeout(() => { btn.innerHTML = originalContent; }, 2000);
+        }
+
+        window.onload = function() {
+            const savedData = localStorage.getItem('socialDataDashboardV2');
+            if (savedData) { appData = JSON.parse(savedData); initDashboard(); }
+        };
+
+        function handleExcelUpload(e, inputElem) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const data = evt.target.result;
+                const workbook = XLSX.read(data, {type: 'binary'});
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(sheet, {defval: ""});
+                processData(json);
+                inputElem.value = '';
+            };
+            reader.readAsBinaryString(file);
+        }
+
+        function cleanChannel(urlStr) {
+            if (!urlStr) return "Sconosciuto";
+            let clean = urlStr.toLowerCase().replace(/https?:\/\//g, '').replace('www.', '');
+            if (clean.includes('twitter.com') || clean.includes('x.com')) return "X";
+            clean = clean.split('.')[0]; 
+            return clean.charAt(0).toUpperCase() + clean.slice(1);
+        }
+
+        function parseDate(val) {
+            if (!val) return "";
+            let dateObj;
+            if (typeof val === 'number') { dateObj = new Date((val - (25567 + 2)) * 86400 * 1000); } 
+            else { dateObj = new Date(val); }
+            if (isNaN(dateObj.getTime())) return val;
+            const dd = String(dateObj.getDate()).padStart(2, '0');
+            const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+            return `${dd}/${mm}/${dateObj.getFullYear()}`;
+        }
+
+        function processData(jsonArray) {
+            const newData = jsonArray.map(row => {
+                const canale = cleanChannel(row['domain_url']);
+                const reach = parseFloat(row['reach']) || 0;
+                const ytSub = parseFloat(row['source_extended_attributes.youtube_subscribers']) || 0;
+                let linkStr = row['url'] || row['parent_url'] || "";
+                try { linkStr = decodeURIComponent(linkStr); } catch(e) {}
+                return {
+                    id: linkStr + row['published'],
+                    link: linkStr,
+                    dataFull: parseDate(row['published']),
+                    dataShort: (parseDate(row['published'])).substring(0, 5),
+                    canale: canale,
+                    logoVisibile: (row['tags_customer'] || "").toLowerCase().includes('logo_visibile'),
+                    followers: (canale === 'Youtube' || canale === 'YouTube') ? ytSub : reach,
+                    profilo: row['extra_author_attributes.name'] || 'Sconosciuto',
+                    interazioni: parseFloat(row['engagement']) || 0
+                };
+            });
+            if (appData.length > 0 && confirm("Unire i dati? Clicca OK per unire (rimuovendo i duplicati), ANNULLA per caricare solo i nuovi.")) {
+                const combined = [...appData, ...newData];
+                appData = combined.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
+            } else { appData = newData; }
+            initDashboard();
+        }
+
+        function saveToBrowser(btn) { localStorage.setItem('socialDataDashboardV2', JSON.stringify(appData)); buttonFeedback(btn, "Salvato!"); }
+        
+        function resetApp(btn) { 
+            if(confirm("Attenzione: rimuovere tutti i dati?")) { 
+                appData = []; 
+                localStorage.removeItem('socialDataDashboardV2'); 
+                document.getElementById('dashboardArea').style.display='none'; 
+                document.getElementById('filterContainer').style.display='none'; 
+                buttonFeedback(btn, "Resettato"); 
+            } 
+        }
+        
+        function exportJSON(btn) { 
+            if (appData.length === 0) return alert("Nessun dato da esportare."); 
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData)); 
+            const a = document.createElement('a'); 
+            a.href = dataStr; 
+            a.download = "database_social.json"; 
+            a.click(); 
+            buttonFeedback(btn, "Esportato!"); 
+        }
+        
+        function importJSON(e, inputElem) { 
+            const file = e.target.files[0]; 
+            if (!file) return; 
+            const reader = new FileReader(); 
+            reader.onload = function(evt) { 
+                try {
+                    const imported = JSON.parse(evt.target.result);
+                    if (appData.length > 0 && confirm("Unire ai dati esistenti? OK per Unire, Annulla per Sovrascrivere.")) {
+                        appData = [...appData, ...imported];
+                    } else {
+                        appData = imported;
+                    }
+                    initDashboard(); 
+                    alert("Database JSON importato con successo.");
+                } catch(err) {
+                    alert("File JSON non valido.");
+                }
+            }; 
+            reader.readAsText(file); 
+        }
+
+        function initDashboard() {
+            document.getElementById('dashboardArea').style.display = 'block';
+            document.getElementById('filterContainer').style.display = 'block';
+            buildFilters();
+            applyFilters();
+        }
+
+        function buildFilters() {
+            const chList = document.getElementById('channelCheckboxList');
+            const prList = document.getElementById('profileCheckboxList');
+            chList.innerHTML = ""; prList.innerHTML = "";
+
+            const channels = [...new Set(appData.map(d => d.canale))].sort();
+            const profiles = [...new Set(appData.map(d => `${d.canale} - ${d.profilo}`))].sort();
+
+            channels.forEach(ch => {
+                const icon = socialLogosColor[ch.toLowerCase()] || socialLogosColor['sconosciuto'];
+                chList.innerHTML += `<label class="checkbox-item"><input type="checkbox" class="ch-check" value="${ch}" checked> ${icon} ${ch}</label>`;
+            });
+
+            profiles.forEach(p => {
+                const ch = p.split(' - ')[0];
+                const icon = socialLogosColor[ch.toLowerCase()] || socialLogosColor['sconosciuto'];
+                prList.innerHTML += `<label class="checkbox-item"><input type="checkbox" class="pr-check" value="${p}" checked> ${icon} ${p}</label>`;
+            });
+        }
+
+        function selectAllFilters(status) {
+            document.querySelectorAll('.ch-check, .pr-check').forEach(c => c.checked = status);
+        }
+
+        function applyFilters() {
+            const selCh = [...document.querySelectorAll('.ch-check:checked')].map(c => c.value);
+            const selPr = [...document.querySelectorAll('.pr-check:checked')].map(c => c.value);
+            filteredData = appData.filter(d => selCh.includes(d.canale) && selPr.includes(`${d.canale} - ${d.profilo}`));
+            renderCustomSVGChart();
+            renderTable();
+        }
+
+        function formatVal(num) {
+            if (!num || isNaN(num) || num === 0) return "0";
+            let v = parseFloat(num);
+            if (v >= 1000000) return (v / 1000000).toFixed(1).replace('.', ',') + 'M';
+            if (v >= 1000) return (v / 1000).toFixed(1).replace('.', ',') + 'K';
+            return Number(v.toFixed(1)).toLocaleString('it-IT');
+        }
+
+        function renderCustomSVGChart() {
+            const container = document.getElementById('chartContainer');
+            if(filteredData.length === 0) { container.innerHTML = '<p style="padding:40px; color:#999;">Nessun dato corrispondente ai filtri.</p>'; return; }
+
+            let totLogoVis = 0;
+            let totLogoNonVis = 0;
+            let totInt = 0;
+
+            const dateMap = {};
+            filteredData.forEach(item => {
+                const d = item.dataShort; if(!d) return;
+                if(!dateMap[d]) dateMap[d] = { vis: 0, nonVis: 0, int: 0 };
+                if (item.logoVisibile) { dateMap[d].vis++; totLogoVis++; }
+                else { dateMap[d].nonVis++; totLogoNonVis++; }
+                dateMap[d].int += item.interazioni;
+                totInt += item.interazioni;
+            });
+
+            const sortedDates = Object.keys(dateMap).sort((a,b) => {
+                const pa = a.split('/'); const pb = b.split('/');
+                return new Date(`2024-${pa[1]}-${pa[0]}`) - new Date(`2024-${pb[1]}-${pb[0]}`);
+            });
+
+            const svgWidth = Math.max(900, sortedDates.length * 85);
+            const svgHeight = parseInt(document.getElementById('chartHeight').value);
+            const margin = { top: 60, right: 30, bottom: 120, left: 90 }; 
+            const chartW = svgWidth - margin.left - margin.right;
+            const chartH = svgHeight - margin.top - margin.bottom;
+
+            const maxVal = Math.max(...sortedDates.map(d => dateMap[d].vis + dateMap[d].nonVis), 1);
+            const step = chartW / sortedDates.length;
+            const barW = Math.min(step * 0.6, 50);
+
+            let svg = `<svg id="mainSvgChart" width="100%" height="100%" viewBox="0 0 ${svgWidth} ${svgHeight}" xmlns="http://www.w3.org/2000/svg" style="background:#fff;">
+                <rect width="100%" height="100%" fill="#ffffff" />`;
+
+            for(let i=0; i<=5; i++) {
+                const y = margin.top + chartH - (chartH * (i/5));
+                const val = Math.round(maxVal * (i/5));
+                // Font corretto con apici singoli per i font composti da più parole all'interno delle doppie virgolette
+                svg += `<line x1="${margin.left-5}" y1="${y}" x2="${svgWidth-margin.right}" y2="${y}" stroke="#eeeeee" stroke-width="1"/>
+                        <text x="${margin.left-15}" y="${y+5}" text-anchor="end" font-family="'Avenir Next LT Pro', 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#666">${val}</text>`;
+            }
+
+            const baselineY = margin.top + chartH;
+            
+            // Etichette Asse X
+            svg += `<text x="${margin.left - 15}" y="${baselineY + 28}" text-anchor="end" font-family="Verdana, sans-serif" font-weight="bold" font-size="11" fill="#0146bc">Interazioni</text>`;
+            svg += `<text x="${margin.left - 15}" y="${baselineY + 42}" text-anchor="end" font-family="Verdana, sans-serif" font-weight="normal" font-size="10" fill="#7f8c8d">Totale: ${formatVal(totInt)}</text>`;
+            svg += `<text x="${margin.left - 15}" y="${baselineY + 70}" text-anchor="end" font-family="Verdana, sans-serif" font-weight="bold" font-size="11" fill="#0146bc">Data</text>`;
+
+            sortedDates.forEach((date, i) => {
+                const dObj = dateMap[date];
+                const xCenter = margin.left + (i * step) + (step / 2);
+                const hV = (dObj.vis / maxVal) * chartH;
+                const hN = (dObj.nonVis / maxVal) * chartH;
+
+                svg += `<rect x="${xCenter - barW/2}" y="${baselineY - hV - hN}" width="${barW}" height="${hN}" fill="#c2d6fb" stroke="#fff" />`;
+                svg += `<rect x="${xCenter - barW/2}" y="${baselineY - hV}" width="${barW}" height="${hV}" fill="#eddc01" stroke="#fff" />`;
+                if(dObj.vis + dObj.nonVis > 0) {
+                    svg += `<text x="${xCenter}" y="${baselineY - hV - hN - 8}" text-anchor="middle" font-family="'Avenir Next LT Pro', sans-serif" font-weight="bold" font-size="13">${dObj.vis+dObj.nonVis}</text>`;
+                }
+                
+                svg += `<rect x="${xCenter - 25}" y="${baselineY + 12}" width="50" height="24" fill="#f8fafc" rx="4" stroke="#e2e8f0" />`;
+                svg += `<text x="${xCenter}" y="${baselineY + 28}" text-anchor="middle" font-family="'Avenir Next LT Pro', sans-serif" font-size="12" font-weight="bold" fill="#0146bc">${formatVal(dObj.int)}</text>`;
+                svg += `<text x="${xCenter}" y="${baselineY + 70}" text-anchor="middle" font-family="'Avenir Next LT Pro', sans-serif" font-size="13" font-weight="600" fill="#2c3e50">${date}</text>`;
+            });
+
+            // Legenda Inferiore (Riallineata in orizzontale per non sovrapporsi alle date)
+            const legendY = svgHeight - 20;
+            svg += `<text x="${margin.left}" y="${legendY + 10}" font-family="'Avenir Next LT Pro', sans-serif" font-size="13" font-weight="bold" fill="#2c3e50">Totale post: ${totLogoVis + totLogoNonVis}</text>`;
+            svg += `<rect x="${margin.left + 150}" y="${legendY}" width="12" height="12" fill="#eddc01" /><text x="${margin.left + 168}" y="${legendY + 10}" font-family="'Avenir Next LT Pro', sans-serif" font-size="12">Logo visibile: ${totLogoVis}</text>`;
+            svg += `<rect x="${margin.left + 310}" y="${legendY}" width="12" height="12" fill="#c2d6fb" /><text x="${margin.left + 328}" y="${legendY + 10}" font-family="'Avenir Next LT Pro', sans-serif" font-size="12">Logo non ottimale: ${totLogoNonVis}</text>`;
+            
+            svg += `</svg>`;
+            container.innerHTML = svg;
+        }
+
+        function exportChartSVG(btn) {
+            const svgData = new XMLSerializer().serializeToString(document.getElementById('mainSvgChart'));
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(new Blob([svgData], {type: "image/svg+xml"}));
+            a.download = "Grafico_Risultati.svg"; 
+            a.click(); 
+            buttonFeedback(btn, "Scaricato!");
+        }
+
+        function setSort(idx) { 
+            if(tableSortCol === idx) {
+                tableSortAsc = !tableSortAsc; 
+            } else { 
+                tableSortCol = idx; 
+                tableSortAsc = true; 
+            } 
+            renderTable(); 
+        }
+
+        function renderTable() {
+            const tbody = document.querySelector("#summaryTable tbody"); 
+            tbody.innerHTML = "";
+            const map = {};
+            
+            filteredData.forEach(item => {
+                const k = `${item.canale}___${item.profilo}`;
+                if(!map[k]) map[k] = { canale: item.canale, profilo: item.profilo, followers: 0, post: 0, intTot: 0, logoV: 0 };
+                map[k].post++; 
+                map[k].intTot += item.interazioni;
+                if(item.followers > map[k].followers) map[k].followers = item.followers;
+                if(item.logoVisibile) map[k].logoV++;
+            });
+
+            let rows = Object.values(map).map(r => ({ 
+                ...r, 
+                intAvg: r.post > 0 ? Math.round(r.intTot / r.post) : 0, 
+                perc: r.post > 0 ? (r.logoV/r.post*100).toFixed(1) : 0 
+            }));
+
+            if(tableSortCol >= 0) {
+                const cols = ['canale','profilo','followers','post','intTot','intAvg','perc'];
+                rows.sort((a,b) => {
+                    let vA = a[cols[tableSortCol]];
+                    let vB = b[cols[tableSortCol]];
+                    
+                    if (typeof vA === 'string' && typeof vB === 'string') {
+                        vA = vA.toLowerCase();
+                        vB = vB.toLowerCase();
+                    } else {
+                        vA = parseFloat(vA);
+                        vB = parseFloat(vB);
+                    }
+
+                    if (vA > vB) return tableSortAsc ? 1 : -1;
+                    if (vA < vB) return tableSortAsc ? -1 : 1;
+                    return 0;
+                });
+            }
+
+            rows.forEach(r => {
+                const icon = socialLogosColor[r.canale.toLowerCase()] || socialLogosColor['sconosciuto'];
+                tbody.innerHTML += `<tr>
+                    <td><div class="icon-cell">${icon} <span>${r.canale}</span></div></td>
+                    <td style="font-weight:600;">${r.profilo}</td>
+                    <td>${formatVal(r.followers)}</td>
+                    <td>${formatVal(r.post)}</td>
+                    <td>${formatVal(r.intTot)}</td>
+                    <td>${formatVal(r.intAvg)}</td>
+                    <td>${r.perc}%</td>
+                </tr>`;
+            });
+        }
+
+        function getTableSVGString() {
+            const table = document.getElementById("summaryTable");
+            const w = 1200; 
+            const rowH = 45; 
+            const h = (table.rows.length) * rowH + 20;
+            
+            let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="background:#fff; font-family: 'Avenir Next LT Pro', Arial, sans-serif;">
+                <rect width="100%" height="100%" fill="#ffffff" />
+                <rect width="100%" height="${rowH}" fill="#f8fafc" />
+                <line x1="0" y1="${rowH}" x2="${w}" y2="${rowH}" stroke="#e2e8f0" stroke-width="2" />`;
+
+            const colWidths = [160, 300, 120, 140, 160, 160, 140];
+
+            for(let i=0; i<table.rows.length; i++) {
+                const y = (i * rowH) + 28; // Allineamento verticale del testo
+                if(i > 0) svg += `<line x1="15" y1="${(i * rowH) + rowH}" x2="${w-15}" y2="${(i * rowH) + rowH}" stroke="#e2e8f0" stroke-width="1" />`;
+                
+                let x = 20;
+                [...table.rows[i].cells].forEach((c, j) => {
+                    const txt = c.innerText.replace('↕', '').trim();
+                    const fill = (i === 0) ? '#0146bc' : '#2c3e50';
+                    const weight = (i === 0) ? 'bold' : 'normal';
+                    
+                    let textAnchor = "start";
+                    let cx = x;
+                    
+                    // Centra il testo dalla terza colonna in poi come nel front-end
+                    if (j >= 2) {
+                        textAnchor = "middle";
+                        cx = x + (colWidths[j] / 2);
+                    }
+
+                    svg += `<text x="${cx}" y="${y}" fill="${fill}" font-weight="${weight}" font-size="13" text-anchor="${textAnchor}">${txt}</text>`;
+                    x += colWidths[j];
+                });
+            }
+            svg += `</svg>`;
+            return svg;
+        }
+
+        function exportTableSVG(btn) {
+            const svg = getTableSVGString();
+            const a = document.createElement("a"); 
+            a.href = URL.createObjectURL(new Blob([svg], {type: "image/svg+xml"})); 
+            a.download = "Tabella_Sintesi.svg"; 
+            a.click(); 
+            buttonFeedback(btn, "SVG Creato!");
+        }
+
+        function exportTablePNG(btn) {
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = `<span>⏳</span><span>Elaborazione...</span>`;
+            
+            const svg = getTableSVGString();
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 1200; 
+                // Calcolo altezza dinamica esatta in base alle righe renderizzate
+                canvas.height = (document.getElementById("summaryTable").rows.length) * 45 + 20;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+                
+                const a = document.createElement("a");
+                a.href = canvas.toDataURL("image/png");
+                a.download = "Tabella_Sintesi.png";
+                a.click();
+                
+                btn.innerHTML = originalContent;
+                buttonFeedback(btn, "PNG Creato!");
+            };
+            img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+        }
+
+        function exportTableToExcel(btn) {
+            const wb = XLSX.utils.table_to_book(document.getElementById("summaryTable"), {sheet: "Sintesi"});
+            XLSX.writeFile(wb, 'Tabella_Sintesi.xlsx'); 
+            buttonFeedback(btn, "Excel Creato!");
+        }
+    </script>
+</body>
+</html>
