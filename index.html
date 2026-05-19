@@ -91,7 +91,7 @@
         button {
             padding: 10px 18px;
             border: none;
-            border-radius: 0px; 
+            border-radius: 4px; 
             font-size: 0.9rem;
             font-weight: 600;
             cursor: pointer;
@@ -133,6 +133,15 @@
             background-color: #e74c3c;
             color: white;
         }
+        
+        .danger-btn:hover {
+            background-color: #c0392b;
+        }
+
+        .icon-btn {
+            padding: 6px 10px;
+            font-size: 0.8rem;
+        }
 
         input[type="file"] {
             display: none;
@@ -149,7 +158,6 @@
             align-items: center;
         }
 
-        /* Filtro Accordion */
         .filter-accordion {
             width: 100%;
             border: 1px solid var(--border);
@@ -252,39 +260,42 @@
             text-align: center;
         }
 
-        /* Tabella */
         .table-container {
             overflow-x: auto;
             margin-top: 20px;
         }
 
-        table {
+        /* Variabili dinamiche per la tabella */
+        #summaryTable {
+            --table-font-size: 15px;
+            --table-padding-v: 12px;
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.95rem;
         }
 
-        th, td {
+        #summaryTable th, #summaryTable td {
             border-bottom: 1px solid var(--border);
-            padding: 12px 15px;
+            padding: var(--table-padding-v) 15px;
             text-align: left;
+            vertical-align: middle;
+            font-size: var(--table-font-size);
         }
 
-        th {
+        #summaryTable th {
             background-color: #f8fafc;
             color: var(--primary-blue);
             font-weight: 600;
             text-transform: uppercase;
-            font-size: 0.85rem;
+            font-size: calc(var(--table-font-size) * 0.9); /* Header leggermente più piccolo del body */
             letter-spacing: 0.5px;
         }
 
-        tr:hover {
+        #summaryTable tr:hover {
             background-color: #fcfcfc;
         }
 
-        #summaryTable th:nth-child(n+3),
-        #summaryTable td:nth-child(n+3) {
+        #summaryTable th:nth-child(n+3):not(:last-child),
+        #summaryTable td:nth-child(n+3):not(:last-child) {
             text-align: center;
         }
 
@@ -296,6 +307,73 @@
         
         .icon-cell svg {
             flex-shrink: 0;
+            width: 1.2em; /* Scala SVG dinamicamente col testo */
+            height: 1.2em;
+        }
+
+        /* Modale stili */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(2px);
+        }
+        
+        .modal-content {
+            background: var(--surface);
+            width: 90%;
+            max-width: 600px;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            max-height: 80vh;
+        }
+
+        .modal-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            color: var(--primary-blue);
+            font-size: 1.2rem;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .hidden-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8fafc;
+            padding: 10px 15px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        .table-controls-bar {
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            flex-wrap: wrap; 
+            background: #f8fafc; 
+            padding: 10px 15px; 
+            border-radius: 4px; 
+            border: 1px solid var(--border);
         }
     </style>
 </head>
@@ -336,15 +414,20 @@
                     3. Salva nel Browser
                 </button>
 
+                <button class="danger-btn" onclick="removeRetweets(this)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
+                    Rimuovi Retweet (RT @)
+                </button>
+
                 <button class="danger-btn" onclick="resetApp(this)">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
-                    4. Resetta App
+                    Resetta App
                 </button>
             </div>
             
             <div id="filterContainer" style="display:none; margin-bottom: 20px;">
                 <details class="filter-accordion">
-                    <summary>5. Filtri Granulari (Canali e Profili)</summary>
+                    <summary>4. Filtri Granulari (Canali e Profili)</summary>
                     <div class="filter-content">
                         <div class="filter-column">
                             <h3 class="filter-group-title">Filtra per Canale</h3>
@@ -385,31 +468,56 @@
                 <h2 class="section-title">
                     Tabella di Sintesi
                     <div style="display: flex; gap: 10px;">
+                        <button class="yellow-btn" onclick="exportFullDataExcel(this)">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M12,12L8,16H10.5V19H13.5V16H16L12,12Z"/></svg>
+                            Esporta Dettaglio (Excel)
+                        </button>
                         <button class="secondary-btn" onclick="exportTablePNG(this)">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19,19H5V5H19M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M13.96,12.29L11.21,15.83L9.25,13.47L6.5,17H17.5L13.96,12.29Z"/></svg>
                             Esporta PNG
                         </button>
                         <button class="secondary-btn" onclick="exportTableSVG(this)">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/></svg>
                             Esporta SVG
                         </button>
                         <button class="secondary-btn" onclick="exportTableToExcel(this)">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M12,12L8,16H10.5V19H13.5V16H16L12,12Z"/></svg>
-                            Esporta Excel
+                            Esporta Tabella
                         </button>
                     </div>
                 </h2>
-                <div class="table-container">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 15px;">
+                    <button class="secondary-btn" onclick="openModal()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.68 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/></svg>
+                        Gestisci Gruppo "Altro"
+                    </button>
+                    
+                    <div class="table-controls-bar">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <label for="fontSizeRange" style="font-size: 0.85rem; font-weight: 600; color: var(--primary-blue);" title="Regola la grandezza del testo">Dimensione Testo:</label>
+                            <input type="range" id="fontSizeRange" min="11" max="22" value="15" oninput="updateTableStyle()" style="width: 80px; cursor: pointer;">
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-right: 10px; border-right: 1px solid #ccc; padding-right: 15px;">
+                            <label for="paddingRange" style="font-size: 0.85rem; font-weight: 600; color: var(--primary-blue);" title="Regola l'altezza delle righe">Spaziatura:</label>
+                            <input type="range" id="paddingRange" min="4" max="24" value="12" oninput="updateTableStyle()" style="width: 80px; cursor: pointer;">
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <label for="followerThreshold" style="font-size: 0.85rem; font-weight: 600; color: var(--primary-blue);">Accorpa followers &le; di:</label>
+                            <input type="number" id="followerThreshold" value="" placeholder="Es. 1000" min="0" style="padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; width: 100px; font-family: inherit;" oninput="renderTable()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container" style="margin-top:0;">
                     <table id="summaryTable">
                         <thead>
                             <tr>
                                 <th style="cursor:pointer; user-select:none;" onclick="setSort(0)" title="Ordina per Canale">Canale</th>
                                 <th style="cursor:pointer; user-select:none;" onclick="setSort(1)" title="Ordina per Profilo">Profilo</th>
-                                <th style="cursor:pointer; user-select:none;" onclick="setSort(2)" title="Ordina per Followers">Followers</th>
-                                <th style="cursor:pointer; user-select:none;" onclick="setSort(3)" title="Ordina per Numero post">Numero post</th>
-                                <th style="cursor:pointer; user-select:none;" onclick="setSort(4)" title="Ordina per Interazioni totali">Interazioni totali</th>
-                                <th style="cursor:pointer; user-select:none;" onclick="setSort(5)" title="Ordina per Interazioni medie">Interazioni medie</th>
+                                <th style="cursor:pointer; user-select:none;" onclick="setSort(2)" title="Ordina per Followers">Followers ↕</th>
+                                <th style="cursor:pointer; user-select:none;" onclick="setSort(3)" title="Ordina per Numero post">N. post</th>
+                                <th style="cursor:pointer; user-select:none;" onclick="setSort(4)" title="Ordina per Interazioni totali">Interazioni</th>
+                                <th style="cursor:pointer; user-select:none;" onclick="setSort(5)" title="Ordina per Interazioni medie">INTERAZIONI MEDIE</th>
                                 <th style="cursor:pointer; user-select:none;" onclick="setSort(6)" title="Ordina per Visibilità logo">Visibilità logo (%)</th>
+                                <th style="text-align: center;">Azioni</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -419,20 +527,35 @@
         </div>
     </div>
 
+    <div id="altroModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Gestione Gruppo "Altro"</h3>
+                <button onclick="closeModal()" class="danger-btn" style="padding: 5px 12px;">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.9rem; color: var(--text-secondary);">Questi profili sono stati nascosti manualmente e inseriti nel raggruppamento "Altri profili".</p>
+                <div id="modalList"></div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // --- LOGICA E DATI GLOBALI ---
         let appData = [];
         let filteredData = [];
-        let tableSortCol = -1;
-        let tableSortAsc = true;
+        let manualHiddenProfiles = []; 
+        
+        let tableSortCol = 2;
+        let tableSortAsc = false;
 
         const socialLogosColor = {
-            facebook: `<svg width="20" height="20" viewBox="0 0 24 24" fill="#1877F2"><path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.142v3.24h-1.918c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z"/></svg>`,
-            instagram: `<svg width="20" height="20" viewBox="0 0 24 24" fill="#E4405F"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.85s-.011 3.584-.069 4.85c-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07s-3.584-.012-4.85-.07c-3.252-.148-4.771-1.691-4.919-4.919-.058-1.265-.069-1.645-.069-4.85s.011-3.584.069-4.85c.149-3.225 1.664-4.771 4.919-4.919 1.266-.058 1.644-.07 4.85-.07zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948s.014 3.667.072 4.947c.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072s3.667-.014 4.947-.072c4.358-.2 6.78-2.618 6.98-6.98.059-1.281.073-1.689.073-4.948s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-6.98-6.98-1.281-.058-1.689-.072-4.948-.072zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.162 6.162 6.162 6.162-2.759 6.162-6.162-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4s1.791-4 4-4 4 1.79 4 4-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44 1.441-.645 1.441-1.44-.645-1.44-1.441-1.44z"/></svg>`,
-            x: `<svg width="20" height="20" viewBox="0 0 24 24" fill="#000000"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.931 6.064-6.931zM17.61 20.644h2.039L6.486 3.24H4.298l13.312 17.404z"/></svg>`,
-            linkedin: `<svg width="20" height="20" viewBox="0 0 24 24" fill="#0A66C2"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>`,
-            youtube: `<svg width="20" height="20" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>`,
-            sconosciuto: `<svg width="20" height="20" viewBox="0 0 24 24" fill="#607d8b"><circle cx="12" cy="12" r="10" stroke="#607d8b" stroke-width="2" fill="none"/><text x="12" y="16" text-anchor="middle" font-size="14" fill="#607d8b">?</text></svg>`
+            facebook: `<svg viewBox="0 0 24 24" fill="#1877F2"><path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.142v3.24h-1.918c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z"/></svg>`,
+            instagram: `<svg viewBox="0 0 24 24" fill="#E4405F"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.85s-.011 3.584-.069 4.85c-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07s-3.584-.012-4.85-.07c-3.252-.148-4.771-1.691-4.919-4.919-.058-1.265-.069-1.645-.069-4.85s.011-3.584.069-4.85c.149-3.225 1.664-4.771 4.919-4.919 1.266-.058 1.644-.07 4.85-.07zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948s.014 3.667.072 4.947c.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072s3.667-.014 4.947-.072c4.358-.2 6.78-2.618 6.98-6.98.059-1.281.073-1.689.073-4.948s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-6.98-6.98-1.281-.058-1.689-.072-4.948-.072zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.162 6.162 6.162 6.162-2.759 6.162-6.162-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4s1.791-4 4-4 4 1.79 4 4-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44 1.441-.645 1.441-1.44-.645-1.44-1.441-1.44z"/></svg>`,
+            x: `<svg viewBox="0 0 24 24" fill="#000000"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.931 6.064-6.931zM17.61 20.644h2.039L6.486 3.24H4.298l13.312 17.404z"/></svg>`,
+            linkedin: `<svg viewBox="0 0 24 24" fill="#0A66C2"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>`,
+            youtube: `<svg viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>`,
+            sconosciuto: `<svg viewBox="0 0 24 24" fill="#607d8b"><circle cx="12" cy="12" r="10" stroke="#607d8b" stroke-width="2" fill="none"/><text x="12" y="16" text-anchor="middle" font-size="14" fill="#607d8b">?</text></svg>`
         };
 
         function buttonFeedback(btn, message = "Fatto!") {
@@ -443,8 +566,25 @@
 
         window.onload = function() {
             const savedData = localStorage.getItem('socialDataDashboardV2');
-            if (savedData) { appData = JSON.parse(savedData); initDashboard(); }
+            if (savedData) { 
+                const parsed = JSON.parse(savedData);
+                if (Array.isArray(parsed)) {
+                    appData = parsed;
+                } else {
+                    appData = parsed.data || [];
+                    manualHiddenProfiles = parsed.hidden || [];
+                }
+                initDashboard(); 
+            }
         };
+
+        function updateTableStyle() {
+            const fontSize = document.getElementById('fontSizeRange').value;
+            const padding = document.getElementById('paddingRange').value;
+            const table = document.getElementById('summaryTable');
+            table.style.setProperty('--table-font-size', fontSize + 'px');
+            table.style.setProperty('--table-padding-v', padding + 'px');
+        }
 
         function handleExcelUpload(e, inputElem) {
             const file = e.target.files[0];
@@ -487,6 +627,9 @@
                 const ytSub = parseFloat(row['source_extended_attributes.youtube_subscribers']) || 0;
                 let linkStr = row['url'] || row['parent_url'] || "";
                 try { linkStr = decodeURIComponent(linkStr); } catch(e) {}
+                
+                const contentSnippet = row['content_snippet'] || row['text'] || row['message'] || "";
+
                 return {
                     id: linkStr + row['published'],
                     link: linkStr,
@@ -496,7 +639,8 @@
                     logoVisibile: (row['tags_customer'] || "").toLowerCase().includes('logo_visibile'),
                     followers: (canale === 'Youtube' || canale === 'YouTube') ? ytSub : reach,
                     profilo: row['extra_author_attributes.name'] || 'Sconosciuto',
-                    interazioni: parseFloat(row['engagement']) || 0
+                    interazioni: parseFloat(row['engagement']) || 0,
+                    contentSnippet: contentSnippet
                 };
             });
             if (appData.length > 0 && confirm("Unire i dati? Clicca OK per unire (rimuovendo i duplicati), ANNULLA per caricare solo i nuovi.")) {
@@ -506,11 +650,29 @@
             initDashboard();
         }
 
-        function saveToBrowser(btn) { localStorage.setItem('socialDataDashboardV2', JSON.stringify(appData)); buttonFeedback(btn, "Salvato!"); }
+        function removeRetweets(btn) {
+            if(appData.length === 0) return alert("Nessun dato presente nel database.");
+            if(!confirm("Vuoi rimuovere dal Database tutti i post in cui il content_snippet inizia per 'RT @'? L'operazione non è reversibile.")) return;
+            
+            const initialCount = appData.length;
+            appData = appData.filter(item => !item.contentSnippet.trim().startsWith("RT @"));
+            const removed = initialCount - appData.length;
+            
+            alert(`Operazione completata. Sono stati rimossi ${removed} retweet.`);
+            initDashboard();
+            buttonFeedback(btn, "Pulizia eseguita");
+        }
+
+        function saveToBrowser(btn) { 
+            const saveObj = { data: appData, hidden: manualHiddenProfiles };
+            localStorage.setItem('socialDataDashboardV2', JSON.stringify(saveObj)); 
+            buttonFeedback(btn, "Salvato!"); 
+        }
         
         function resetApp(btn) { 
             if(confirm("Attenzione: rimuovere tutti i dati?")) { 
                 appData = []; 
+                manualHiddenProfiles = [];
                 localStorage.removeItem('socialDataDashboardV2'); 
                 document.getElementById('dashboardArea').style.display='none'; 
                 document.getElementById('filterContainer').style.display='none'; 
@@ -520,7 +682,8 @@
         
         function exportJSON(btn) { 
             if (appData.length === 0) return alert("Nessun dato da esportare."); 
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData)); 
+            const saveObj = { data: appData, hidden: manualHiddenProfiles };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(saveObj)); 
             const a = document.createElement('a'); 
             a.href = dataStr; 
             a.download = "database_social.json"; 
@@ -535,10 +698,15 @@
             reader.onload = function(evt) { 
                 try {
                     const imported = JSON.parse(evt.target.result);
+                    let importedData = Array.isArray(imported) ? imported : (imported.data || []);
+                    let importedHidden = Array.isArray(imported) ? [] : (imported.hidden || []);
+
                     if (appData.length > 0 && confirm("Unire ai dati esistenti? OK per Unire, Annulla per Sovrascrivere.")) {
-                        appData = [...appData, ...imported];
+                        appData = [...appData, ...importedData];
+                        manualHiddenProfiles = [...new Set([...manualHiddenProfiles, ...importedHidden])];
                     } else {
-                        appData = imported;
+                        appData = importedData;
+                        manualHiddenProfiles = importedHidden;
                     }
                     initDashboard(); 
                     alert("Database JSON importato con successo.");
@@ -690,25 +858,73 @@
             renderTable(); 
         }
 
-        function renderTable() {
-            const tableContainer = document.querySelector(".table-container");
-            if (!document.getElementById("followerThreshold")) {
-                const thresholdDiv = document.createElement("div");
-                thresholdDiv.style.cssText = "margin-bottom: 15px; display: flex; align-items: center; gap: 10px; justify-content: flex-end;";
-                thresholdDiv.innerHTML = `
-                    <label for="followerThreshold" style="font-size: 0.95rem; font-weight: 600; color: var(--primary-blue);">Accorpa profili con followers &le; di:</label>
-                    <input type="number" id="followerThreshold" value="" placeholder="Es. 1000" min="0" style="padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; width: 120px; font-family: inherit;" oninput="renderTable()">
-                `;
-                tableContainer.insertBefore(thresholdDiv, tableContainer.firstChild);
+        function hideProfile(canale, profilo) {
+            const key = `${canale}___${profilo}`;
+            if(!manualHiddenProfiles.includes(key)) {
+                manualHiddenProfiles.push(key);
+                renderTable();
+            }
+        }
+
+        function restoreProfile(key) {
+            manualHiddenProfiles = manualHiddenProfiles.filter(k => k !== key);
+            renderTable();
+            renderModalList(); 
+        }
+
+        function openModal() {
+            document.getElementById('altroModal').style.display = 'flex';
+            renderModalList();
+        }
+
+        function closeModal() {
+            document.getElementById('altroModal').style.display = 'none';
+        }
+
+        function renderModalList() {
+            const container = document.getElementById('modalList');
+            if(manualHiddenProfiles.length === 0) {
+                container.innerHTML = '<p style="text-align:center; padding: 20px; color: var(--text-secondary);">Nessun profilo nascosto manualmente.</p>';
+                return;
             }
 
+            let html = '';
+            manualHiddenProfiles.forEach(key => {
+                const parts = key.split('___');
+                const canale = parts[0];
+                const profilo = parts[1];
+                const icon = socialLogosColor[canale.toLowerCase()] || socialLogosColor['sconosciuto'];
+                
+                html += `
+                <div class="hidden-item">
+                    <div style="display:flex; align-items:center; gap: 10px;">
+                        <span style="width:20px; height:20px; display:inline-block;">${icon}</span>
+                        <span style="font-weight:600;">${canale}</span> - <span>${profilo}</span>
+                    </div>
+                    <button class="secondary-btn icon-btn" onclick="restoreProfile('${key}')">Ripristina</button>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function renderTable() {
             const tbody = document.querySelector("#summaryTable tbody"); 
             tbody.innerHTML = "";
             const map = {};
             
+            document.querySelectorAll("#summaryTable th").forEach((th, idx) => {
+                if(idx < 7) { 
+                    let text = th.innerText.replace(' ↕', '').replace(' ↓', '').replace(' ↑', '');
+                    if(tableSortCol === idx) {
+                        text += tableSortAsc ? ' ↑' : ' ↓';
+                    }
+                    th.innerText = text;
+                }
+            });
+            
             filteredData.forEach(item => {
                 const k = `${item.canale}___${item.profilo}`;
-                if(!map[k]) map[k] = { canale: item.canale, profilo: item.profilo, followers: 0, post: 0, intTot: 0, logoV: 0 };
+                if(!map[k]) map[k] = { canale: item.canale, profilo: item.profilo, followers: 0, post: 0, intTot: 0, logoV: 0, isHidden: manualHiddenProfiles.includes(k) };
                 map[k].post++; 
                 map[k].intTot += item.interazioni;
                 if(item.followers > map[k].followers) map[k].followers = item.followers;
@@ -720,15 +936,15 @@
             const thresholdMap = {};
 
             Object.values(map).forEach(r => {
-                if (r.followers <= threshold) {
+                if (r.followers <= threshold || r.isHidden) {
                     const groupKey = `${r.canale}___Altri profili`;
                     if (!thresholdMap[groupKey]) {
-                        thresholdMap[groupKey] = { canale: r.canale, profilo: "Altri profili", followers: 0, post: 0, intTot: 0, logoV: 0 };
+                        thresholdMap[groupKey] = { canale: r.canale, profilo: "Altri profili", followers: 0, post: 0, intTot: 0, logoV: 0, isGroup: true };
                     }
                     thresholdMap[groupKey].post += r.post;
                     thresholdMap[groupKey].intTot += r.intTot;
                     thresholdMap[groupKey].logoV += r.logoV;
-                    thresholdMap[groupKey].followers += r.followers; // Somma dei followers per coerenza
+                    thresholdMap[groupKey].followers += r.followers;
                 } else {
                     const k = `${r.canale}___${r.profilo}`;
                     thresholdMap[k] = r;
@@ -741,11 +957,9 @@
                 perc: r.post > 0 ? (r.logoV/r.post*100).toFixed(1) : 0 
             }));
 
-            // 1. Separiamo le righe normali da quelle "Altri profili"
             let normalRows = rows.filter(r => r.profilo !== "Altri profili");
             let otherRows = rows.filter(r => r.profilo === "Altri profili");
 
-            // 2. Applichiamo l'ordinamento
             if(tableSortCol >= 0) {
                 const cols = ['canale','profilo','followers','post','intTot','intAvg','perc'];
                 const sortFn = (a, b) => {
@@ -766,16 +980,22 @@
                 };
 
                 normalRows.sort(sortFn);
-                otherRows.sort(sortFn); // Ordina anche il gruppo "Altri" tra di loro (es. per canale)
+                otherRows.sort(sortFn);
             }
 
-            // 3. Ricongiungiamo forzando "Altri profili" in fondo
             rows = [...normalRows, ...otherRows];
 
             rows.forEach(r => {
                 const icon = socialLogosColor[r.canale.toLowerCase()] || socialLogosColor['sconosciuto'];
                 const isOther = r.profilo === "Altri profili";
                 const rowStyle = isOther ? 'style="background-color: #f8fafc; color: var(--text-secondary); font-style: italic;"' : '';
+
+                let actionBtn = "";
+                if (isOther) {
+                    actionBtn = `<button class="secondary-btn icon-btn" onclick="openModal()" title="Gestisci i profili nascosti" style="font-size:0.75rem;">⚙️ Gestisci</button>`;
+                } else {
+                    actionBtn = `<button class="secondary-btn icon-btn" onclick="hideProfile('${r.canale}', '${r.profilo.replace(/'/g, "\\'")}')" title="Sposta in Altri profili">➡️ Altro</button>`;
+                }
 
                 tbody.innerHTML += `<tr ${rowStyle}>
                     <td><div class="icon-cell">${icon} <span>${r.canale}</span></div></td>
@@ -785,14 +1005,48 @@
                     <td>${formatVal(r.intTot)}</td>
                     <td>${formatVal(r.intAvg)}</td>
                     <td>${r.perc}%</td>
+                    <td style="text-align: center;">${actionBtn}</td>
                 </tr>`;
             });
+        }
+
+        function exportFullDataExcel(btn) {
+            if(filteredData.length === 0) return alert("Nessun dato corrispondente ai filtri per l'esportazione.");
+            
+            const exportArr = filteredData.map(d => ({
+                'Data': d.dataFull,
+                'Canale': d.canale,
+                'Nome profilo': d.profilo,
+                'Numero followers': d.followers,
+                'Interazioni': d.interazioni,
+                'Copy': d.contentSnippet, 
+                'Link al post': d.link    
+            }));
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(exportArr);
+            XLSX.utils.book_append_sheet(wb, ws, "Dettaglio Aggregazioni");
+
+            const now = new Date();
+            const pad = (n) => n.toString().padStart(2, '0');
+            const dataStr = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}`;
+            const oraStr = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+            
+            const fileName = `Dettaglio_Risultati_Completo_${dataStr}_${oraStr}.xlsx`;
+
+            XLSX.writeFile(wb, fileName); 
+            buttonFeedback(btn, "Excel Creato!");
         }
 
         function getTableSVGString() {
             const table = document.getElementById("summaryTable");
             const w = 1200; 
-            const rowH = 45; 
+            
+            // Lettura dinamica delle misure basata sui selettori a schermo
+            const fontSize = parseInt(document.getElementById('fontSizeRange')?.value || 15);
+            // Calcola l'altezza effettiva delle righe dal DOM per mantenere precisione visiva
+            const rowH = table.rows.length > 0 ? table.rows[0].offsetHeight : 45; 
+            
             const h = (table.rows.length) * rowH + 20;
             
             let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="background:#fff; font-family: 'Avenir Next LT Pro', Arial, sans-serif;">
@@ -803,25 +1057,30 @@
             const colWidths = [160, 300, 120, 140, 160, 160, 140];
 
             for(let i=0; i<table.rows.length; i++) {
-                const y = (i * rowH) + 28; // Allineamento verticale del testo
+                // Calcolo Y dinamico in base all'altezza della riga attuale (per centrare il testo verticalmente)
+                const y = (i * rowH) + (rowH / 2) + (fontSize * 0.35); 
+                
                 if(i > 0) svg += `<line x1="15" y1="${(i * rowH) + rowH}" x2="${w-15}" y2="${(i * rowH) + rowH}" stroke="#e2e8f0" stroke-width="1" />`;
                 
                 let x = 20;
                 [...table.rows[i].cells].forEach((c, j) => {
-                    const txt = c.innerText.replace('↕', '').trim();
+                    if (j >= 7) return; 
+                    const txt = c.innerText.replace('↕', '').replace('↓', '').replace('↑', '').trim();
                     const fill = (i === 0) ? '#0146bc' : '#2c3e50';
                     const weight = (i === 0) ? 'bold' : 'normal';
                     
                     let textAnchor = "start";
                     let cx = x;
                     
-                    // Centra il testo dalla terza colonna in poi come nel front-end
                     if (j >= 2) {
                         textAnchor = "middle";
                         cx = x + (colWidths[j] / 2);
                     }
 
-                    svg += `<text x="${cx}" y="${y}" fill="${fill}" font-weight="${weight}" font-size="13" text-anchor="${textAnchor}">${txt}</text>`;
+                    // Intestazione leggermente più piccola se impostata da font globale
+                    const targetFontSize = i === 0 ? fontSize - 1 : fontSize;
+
+                    svg += `<text x="${cx}" y="${y}" fill="${fill}" font-weight="${weight}" font-size="${targetFontSize}" text-anchor="${textAnchor}">${txt}</text>`;
                     x += colWidths[j];
                 });
             }
@@ -847,8 +1106,10 @@
             img.onload = function() {
                 const canvas = document.createElement('canvas');
                 canvas.width = 1200; 
-                // Calcolo altezza dinamica esatta in base alle righe renderizzate
-                canvas.height = (document.getElementById("summaryTable").rows.length) * 45 + 20;
+                // Misurazione dinamica altezza canvas
+                const rowH = document.getElementById("summaryTable").rows.length > 0 ? document.getElementById("summaryTable").rows[0].offsetHeight : 45;
+                canvas.height = (document.getElementById("summaryTable").rows.length) * rowH + 20;
+                
                 const ctx = canvas.getContext('2d');
                 ctx.fillStyle = "#ffffff";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -866,7 +1127,13 @@
         }
 
         function exportTableToExcel(btn) {
-            const wb = XLSX.utils.table_to_book(document.getElementById("summaryTable"), {sheet: "Sintesi"});
+            const tempTable = document.getElementById("summaryTable").cloneNode(true);
+            for (let i = 0; i < tempTable.rows.length; i++) {
+                if (tempTable.rows[i].cells.length > 7) {
+                    tempTable.rows[i].deleteCell(7);
+                }
+            }
+            const wb = XLSX.utils.table_to_book(tempTable, {sheet: "Sintesi"});
             XLSX.writeFile(wb, 'Tabella_Sintesi.xlsx'); 
             buttonFeedback(btn, "Excel Creato!");
         }
